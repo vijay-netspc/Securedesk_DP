@@ -1,0 +1,152 @@
+{
+  "info": {
+    "name": "SecureDesk API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" }
+  ],
+  "item": [
+    {
+      "name": "1. Register Employee",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/users/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Arun Kumar\",\n  \"email\": \"arun@company.com\",\n  \"password\": \"pass123\",\n  \"role\": \"EMPLOYEE\"\n}"
+        }
+      }
+    },
+    {
+      "name": "2. Register Support Staff",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/users/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Priya (L1 Support)\",\n  \"email\": \"priya@company.com\",\n  \"password\": \"pass123\",\n  \"role\": \"SUPPORT_STAFF\"\n}"
+        }
+      }
+    },
+    {
+      "name": "3. Get All Users",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/users"
+      }
+    },
+    {
+      "name": "4. Create Hardware Ticket (Factory + Strategy)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/tickets",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Laptop not booting\",\n  \"description\": \"My laptop is not working since this morning\",\n  \"category\": \"HARDWARE\",\n  \"createdByUserId\": 1\n}"
+        }
+      }
+    },
+    {
+      "name": "5. Create Security Ticket (always CRITICAL)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/tickets",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Suspicious login attempt\",\n  \"description\": \"Multiple failed logins detected from unknown IP\",\n  \"category\": \"SECURITY\",\n  \"createdByUserId\": 1\n}"
+        }
+      }
+    },
+    {
+      "name": "6. Create Network Ticket (Urgent -> Critical on outage)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/tickets",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Office network outage\",\n  \"description\": \"Complete network outage affecting all users\",\n  \"category\": \"NETWORK\",\n  \"createdByUserId\": 1\n}"
+        }
+      }
+    },
+    {
+      "name": "7. Get All Tickets",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/tickets"
+      }
+    },
+    {
+      "name": "8. Get Ticket By Id",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/tickets/1"
+      }
+    },
+    {
+      "name": "9. Assign Ticket (State: OPEN -> ASSIGNED)",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/tickets/1/assign",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"staffUserId\": 2\n}"
+        }
+      }
+    },
+    {
+      "name": "10. Start Progress (State: ASSIGNED -> IN_PROGRESS)",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/api/tickets/1/start-progress"
+      }
+    },
+    {
+      "name": "11. Resolve Ticket (State: IN_PROGRESS -> RESOLVED)",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/api/tickets/1/resolve"
+      }
+    },
+    {
+      "name": "12. Close Ticket (State: RESOLVED -> CLOSED)",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/api/tickets/1/close"
+      }
+    },
+    {
+      "name": "13. INVALID transition (should return 409)",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/api/tickets/1/close",
+        "description": "Call this on a fresh OPEN ticket to see the State pattern reject an illegal transition with HTTP 409."
+      }
+    },
+    {
+      "name": "14. Escalate Ticket (Chain of Responsibility)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/tickets/1/escalate",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reason\": \"Level 1 could not resolve within SLA\"\n}"
+        }
+      }
+    },
+    {
+      "name": "15. Get Notifications for User (Observer)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/notifications/user/1"
+      }
+    }
+  ]
+}

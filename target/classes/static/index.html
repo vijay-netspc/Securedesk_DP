@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SecureDesk — IT Helpdesk Console</title>
+<style>
+  :root{
+    --bg:#12151b;
+    --surface:#1a1f27;
+    --surface-2:#202631;
+    --border:#2b3240;
+    --text:#e7eaee;
+    --text-dim:#8c96a6;
+    --accent:#d9a441;
+    --accent-ink:#1a1400;
+    --blue:#5b8def;
+    --grey:#8c96a6;
+    --amber:#d9a441;
+    --green:#4caf7d;
+    --slate:#5b6472;
+    --red:#e5484d;
+    --orange:#e08a3c;
+    --teal:#4fa8a0;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:1.5;
+  }
+  ::selection{ background:var(--accent); color:var(--accent-ink); }
+
+  a{color:inherit;}
+  button{ font-family:inherit; }
+
+  /* ---------- layout ---------- */
+  .app{ display:flex; min-height:100vh; }
+
+  .rail{
+    width:212px;
+    flex-shrink:0;
+    background:var(--surface);
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    padding:20px 12px;
+  }
+  .brand{
+    font-family:var(--mono);
+    font-size:15px;
+    letter-spacing:0.02em;
+    color:var(--text);
+    padding:0 8px 20px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .brand-dot{
+    width:8px; height:8px; border-radius:50%;
+    background:var(--accent);
+    flex-shrink:0;
+  }
+  .nav{ display:flex; flex-direction:column; gap:2px; }
+  .nav-item{
+    display:flex; align-items:center; gap:10px;
+    padding:9px 10px;
+    border-radius:6px;
+    color:var(--text-dim);
+    cursor:pointer;
+    font-size:13.5px;
+    border:none; background:none;
+    text-align:left;
+    width:100%;
+  }
+  .nav-item:hover{ background:var(--surface-2); color:var(--text); }
+  .nav-item.active{ background:var(--surface-2); color:var(--text); }
+  .nav-item .glyph{ width:16px; text-align:center; color:var(--text-dim); font-family:var(--mono); font-size:12px; }
+  .nav-item.active .glyph{ color:var(--accent); }
+
+  .rail-foot{
+    margin-top:auto;
+    padding:10px 8px 0;
+    border-top:1px solid var(--border);
+    font-size:11.5px;
+    color:var(--text-dim);
+    font-family:var(--mono);
+  }
+
+  .main{ flex:1; display:flex; flex-direction:column; min-width:0; }
+
+  .topbar{
+    height:60px; flex-shrink:0;
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 24px;
+    background:var(--bg);
+  }
+  .topbar h1{ font-size:16px; margin:0; font-weight:600; }
+  .topbar .sub{ color:var(--text-dim); font-size:12.5px; margin-top:1px; }
+
+  .acting-as{ display:flex; align-items:center; gap:10px; }
+  .acting-as label{ color:var(--text-dim); font-size:12px; }
+  select, input, textarea{
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:8px 10px;
+    font-size:13.5px;
+    font-family:var(--sans);
+  }
+  select:focus, input:focus, textarea:focus{
+    outline:2px solid var(--accent);
+    outline-offset:0;
+    border-color:var(--accent);
+  }
+  textarea{ resize:vertical; font-family:var(--sans); }
+
+  .role-chip{
+    font-family:var(--mono);
+    font-size:10.5px;
+    padding:3px 7px;
+    border-radius:4px;
+    border:1px solid var(--border);
+    color:var(--text-dim);
+  }
+
+  .content{ flex:1; overflow-y:auto; padding:24px; }
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  /* ---------- stat tiles ---------- */
+  .tiles{ display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; margin-bottom:24px; }
+  .tile{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:16px;
+  }
+  .tile .num{ font-size:28px; font-weight:600; font-family:var(--mono); }
+  .tile .label{ color:var(--text-dim); font-size:12px; margin-top:4px; }
+  .tile.accent .num{ color:var(--accent); }
+  .tile.warn .num{ color:var(--red); }
+
+  .overview-grid{ display:grid; grid-template-columns:1.4fr 1fr; gap:16px; align-items:start; }
+
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:8px;
+  }
+  .panel-head{
+    padding:14px 16px;
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .panel-head h2{ font-size:13.5px; margin:0; font-weight:600; }
+  .panel-body{ padding:14px 16px; }
+  .panel-body.tight{ padding:0; }
+
+  .feed-item{
+    padding:10px 16px;
+    border-bottom:1px solid var(--border);
+    font-size:13px;
+  }
+  .feed-item:last-child{ border-bottom:none; }
+  .feed-item .msg{ color:var(--text); }
+  .feed-item .meta{ color:var(--text-dim); font-size:11.5px; font-family:var(--mono); margin-top:3px; }
+  .empty{ padding:24px 16px; color:var(--text-dim); font-size:13px; text-align:center; }
+
+  /* ---------- tickets table ---------- */
+  .toolbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:12px; }
+  .toolbar .filters{ display:flex; gap:8px; }
+  .btn{
+    background:var(--accent);
+    color:var(--accent-ink);
+    border:none;
+    border-radius:6px;
+    padding:8px 14px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .btn:hover{ filter:brightness(1.08); }
+  .btn:disabled{ opacity:0.45; cursor:not-allowed; }
+  .btn.secondary{
+    background:transparent;
+    color:var(--text);
+    border:1px solid var(--border);
+    font-weight:500;
+  }
+  .btn.secondary:hover{ background:var(--surface-2); }
+  .btn.danger{ background:var(--red); color:#1a0505; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{
+    text-align:left;
+    color:var(--text-dim);
+    font-weight:500;
+    font-size:11.5px;
+    padding:8px 12px;
+    border-bottom:1px solid var(--border);
+  }
+  tbody td{
+    padding:11px 12px;
+    border-bottom:1px solid var(--border);
+    vertical-align:middle;
+  }
+  tbody tr{ cursor:pointer; }
+  tbody tr:hover{ background:var(--surface-2); }
+  .tid{ font-family:var(--mono); color:var(--text-dim); }
+
+  .chip{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 9px;
+    border-radius:20px;
+    font-size:11.5px;
+    font-weight:600;
+    border:1px solid transparent;
+  }
+  .chip .dot{ width:6px; height:6px; border-radius:50%; }
+  .chip-open{ background:rgba(91,141,239,0.12); color:var(--blue); }
+  .chip-open .dot{ background:var(--blue); }
+  .chip-assigned{ background:rgba(140,150,166,0.12); color:var(--grey); }
+  .chip-assigned .dot{ background:var(--grey); }
+  .chip-in_progress{ background:rgba(217,164,65,0.14); color:var(--amber); }
+  .chip-in_progress .dot{ background:var(--amber); }
+  .chip-resolved{ background:rgba(76,175,125,0.14); color:var(--green); }
+  .chip-resolved .dot{ background:var(--green); }
+  .chip-closed{ background:rgba(91,100,114,0.18); color:var(--slate); }
+  .chip-closed .dot{ background:var(--slate); }
+
+  .chip-normal{ background:rgba(79,168,160,0.14); color:var(--teal); }
+  .chip-urgent{ background:rgba(224,138,60,0.14); color:var(--orange); }
+  .chip-critical{ background:rgba(229,72,77,0.14); color:var(--red); }
+
+  /* ---------- forms ---------- */
+  .form{ max-width:520px; display:flex; flex-direction:column; gap:14px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:12.5px; color:var(--text-dim); }
+  .field-row{ display:flex; gap:12px; }
+  .field-row .field{ flex:1; }
+  .hint{ font-size:12px; color:var(--text-dim); margin-top:2px; }
+
+  .result-box{
+    margin-top:16px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:var(--surface-2);
+    padding:14px 16px;
+    font-size:13px;
+    display:none;
+  }
+  .result-box.show{ display:block; }
+  .result-box .row{ display:flex; justify-content:space-between; padding:4px 0; }
+  .result-box .row span:first-child{ color:var(--text-dim); }
+
+  /* ---------- slide-over ---------- */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.5);
+    display:none;
+    z-index:40;
+  }
+  .overlay.show{ display:block; }
+  .drawer{
+    position:fixed; top:0; right:0; bottom:0;
+    width:440px; max-width:92vw;
+    background:var(--surface);
+    border-left:1px solid var(--border);
+    transform:translateX(100%);
+    transition:transform 0.18s ease;
+    z-index:41;
+    display:flex; flex-direction:column;
+  }
+  .drawer.show{ transform:translateX(0); }
+  .drawer-head{
+    padding:18px 20px;
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:flex-start; justify-content:space-between;
+    gap:10px;
+  }
+  .drawer-head h2{ font-size:16px; margin:0 0 4px; }
+  .drawer-head .tid{ font-size:12px; }
+  .drawer-close{ background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:18px; padding:0; }
+  .drawer-close:hover{ color:var(--text); }
+  .drawer-body{ flex:1; overflow-y:auto; padding:18px 20px; }
+  .drawer-section{ margin-bottom:22px; }
+  .drawer-section h3{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.04em;
+    color:var(--text-dim); margin:0 0 10px; font-weight:600;
+  }
+  .kv{ display:grid; grid-template-columns:120px 1fr; gap:8px 0; font-size:13px; }
+  .kv .k{ color:var(--text-dim); }
+
+  .action-grid{ display:flex; flex-wrap:wrap; gap:8px; }
+
+  .timeline{ display:flex; flex-direction:column; }
+  .tl-item{ display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); font-size:12.5px; }
+  .tl-item:last-child{ border-bottom:none; }
+  .tl-time{ font-family:var(--mono); color:var(--text-dim); width:118px; flex-shrink:0; font-size:11px; padding-top:1px; }
+
+  .alert{
+    border-radius:6px;
+    padding:10px 12px;
+    font-size:12.5px;
+    margin-bottom:14px;
+    display:none;
+  }
+  .alert.show{ display:block; }
+  .alert.error{ background:rgba(229,72,77,0.12); color:#ff9a9d; border:1px solid rgba(229,72,77,0.3); }
+  .alert.success{ background:rgba(76,175,125,0.12); color:#8fe3b7; border:1px solid rgba(76,175,125,0.3); }
+
+  .pattern-tag{
+    font-family:var(--mono);
+    font-size:10px;
+    color:var(--bg);
+    background:var(--accent);
+    padding:1px 6px;
+    border-radius:3px;
+    margin-right:6px;
+  }
+
+  @media (max-width: 900px){
+    .rail{ display:none; }
+    .tiles{ grid-template-columns:repeat(2,1fr); }
+    .overview-grid{ grid-template-columns:1fr; }
+    .field-row{ flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="rail">
+    <div class="brand"><span class="brand-dot"></span>securedesk</div>
+    <div class="nav">
+      <button class="nav-item active" data-view="overview"><span class="glyph">◆</span>Overview</button>
+      <button class="nav-item" data-view="tickets"><span class="glyph">▤</span>Tickets</button>
+      <button class="nav-item" data-view="newticket"><span class="glyph">+</span>New ticket</button>
+      <button class="nav-item" data-view="people"><span class="glyph">◐</span>People</button>
+      <button class="nav-item" data-view="notifications"><span class="glyph">●</span>Notifications</button>
+    </div>
+    <div class="rail-foot">v1.0 · design-patterns build</div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="view-title">Overview</h1>
+        <div class="sub" id="view-sub">All tickets at a glance</div>
+      </div>
+      <div class="acting-as">
+        <label for="actingAsSelect">Acting as</label>
+        <select id="actingAsSelect"></select>
+        <span class="role-chip" id="actingAsRole">—</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <div class="view active" id="view-overview">
+        <div class="tiles" id="statTiles"></div>
+        <div class="overview-grid">
+          <div class="panel">
+            <div class="panel-head"><h2>Open &amp; unresolved</h2></div>
+            <div class="panel-body tight">
+              <table>
+                <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Priority</th><th>Status</th><th>Level</th></tr></thead>
+                <tbody id="overviewTicketRows"></tbody>
+              </table>
+              <div class="empty" id="overviewEmpty" style="display:none;">No open tickets right now.</div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Your notifications</h2></div>
+            <div class="panel-body tight" id="overviewFeed"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TICKETS -->
+      <div class="view" id="view-tickets">
+        <div class="toolbar">
+          <div class="filters">
+            <select id="filterStatus">
+              <option value="">All statuses</option>
+              <option>OPEN</option><option>ASSIGNED</option><option>IN_PROGRESS</option>
+              <option>RESOLVED</option><option>CLOSED</option>
+            </select>
+            <select id="filterCategory">
+              <option value="">All categories</option>
+              <option>HARDWARE</option><option>SOFTWARE</option><option>NETWORK</option>
+              <option>SECURITY</option><option>ACCESS</option>
+            </select>
+          </div>
+          <button class="btn secondary" id="refreshTickets">Refresh</button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Title</th><th>Category</th><th>Priority</th><th>Status</th><th>Level</th><th>Assigned to</th></tr>
+            </thead>
+            <tbody id="ticketRows"></tbody>
+          </table>
+          <div class="empty" id="ticketsEmpty" style="display:none;">No tickets match this filter.</div>
+        </div>
+      </div>
+
+      <!-- NEW TICKET -->
+      <div class="view" id="view-newticket">
+        <form class="form" id="newTicketForm">
+          <div class="alert error" id="newTicketError"></div>
+          <div class="field">
+            <label for="ntTitle">Title</label>
+            <input id="ntTitle" required placeholder="e.g. Laptop won't boot">
+          </div>
+          <div class="field">
+            <label for="ntDescription">Description</label>
+            <textarea id="ntDescription" rows="4" required placeholder="Describe what's happening, when it started, and any error messages."></textarea>
+            <div class="hint">Wording matters: mentioning "down", "outage", or "breach" affects the priority the Strategy pattern assigns.</div>
+          </div>
+          <div class="field">
+            <label for="ntCategory">Category</label>
+            <select id="ntCategory">
+              <option value="HARDWARE">Hardware</option>
+              <option value="SOFTWARE">Software</option>
+              <option value="NETWORK">Network</option>
+              <option value="SECURITY">Security</option>
+              <option value="ACCESS">Access / Account</option>
+            </select>
+          </div>
+          <div><button class="btn" type="submit">Submit ticket</button></div>
+          <div class="result-box" id="newTicketResult"></div>
+        </form>
+      </div>
+
+      <!-- PEOPLE -->
+      <div class="view" id="view-people">
+        <div class="overview-grid" style="grid-template-columns:1fr 1.2fr;">
+          <div class="panel">
+            <div class="panel-head"><h2>Register a person</h2></div>
+            <div class="panel-body">
+              <form class="form" id="newUserForm">
+                <div class="alert error" id="newUserError"></div>
+                <div class="field">
+                  <label for="uName">Name</label>
+                  <input id="uName" required>
+                </div>
+                <div class="field">
+                  <label for="uEmail">Email</label>
+                  <input id="uEmail" type="email" required>
+                </div>
+                <div class="field">
+                  <label for="uPassword">Password</label>
+                  <input id="uPassword" type="password" required>
+                </div>
+                <div class="field">
+                  <label for="uRole">Role</label>
+                  <select id="uRole">
+                    <option value="EMPLOYEE">Employee</option>
+                    <option value="SUPPORT_STAFF">Support staff</option>
+                    <option value="ADMIN">Administrator</option>
+                  </select>
+                </div>
+                <div><button class="btn" type="submit">Register</button></div>
+              </form>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Everyone</h2></div>
+            <div class="panel-body tight">
+              <table>
+                <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th></tr></thead>
+                <tbody id="userRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="view" id="view-notifications">
+        <div class="panel">
+          <div class="panel-head"><h2>Notifications for the acting-as user</h2></div>
+          <div class="panel-body tight" id="notificationList"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Ticket detail drawer -->
+<div class="overlay" id="overlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div>
+      <h2 id="drawerTitle">Ticket</h2>
+      <div class="tid" id="drawerSub"></div>
+    </div>
+    <button class="drawer-close" id="drawerClose">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="alert error" id="drawerError"></div>
+    <div class="alert success" id="drawerSuccess"></div>
+
+    <div class="drawer-section">
+      <h3>Details</h3>
+      <div class="kv" id="drawerDetails"></div>
+    </div>
+
+    <div class="drawer-section">
+      <h3>Description</h3>
+      <div id="drawerDescription" style="font-size:13px; color:var(--text-dim);"></div>
+    </div>
+
+    <div class="drawer-section">
+      <h3>Actions</h3>
+      <div class="action-grid" id="drawerActions"></div>
+    </div>
+
+    <div class="drawer-section">
+      <h3><span class="pattern-tag">State</span>Lifecycle history</h3>
+      <div class="timeline" id="drawerStatusHistory"></div>
+    </div>
+
+    <div class="drawer-section">
+      <h3><span class="pattern-tag">Chain</span>Escalation history</h3>
+      <div class="timeline" id="drawerEscalationHistory"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "";
+let USERS = [];
+let TICKETS = [];
+let ACTING_AS = null;
+let CURRENT_TICKET_ID = null;
+
+// ---------- fetch helpers ----------
+async function api(path, options = {}) {
+  const res = await fetch(API + path, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  let body = null;
+  try { body = await res.json(); } catch (e) { /* no body */ }
+  if (!res.ok) {
+    const message = (body && body.error) ? body.error : ("Request failed (" + res.status + ")");
+    throw new Error(message);
+  }
+  return body;
+}
+
+function fmtDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " +
+         d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+function statusChip(status) {
+  const cls = "chip chip-" + status.toLowerCase();
+  return `<span class="${cls}"><span class="dot"></span>${status.replace('_',' ')}</span>`;
+}
+function priorityChip(priority) {
+  if (!priority) return "—";
+  const cls = "chip chip-" + priority.toLowerCase();
+  return `<span class="${cls}">${priority}</span>`;
+}
+function levelLabel(level) {
+  return level ? level.replace('_',' ') : "—";
+}
+
+// ---------- nav ----------
+const VIEW_META = {
+  overview: ["Overview", "All tickets at a glance"],
+  tickets: ["Tickets", "Every ticket in the system"],
+  newticket: ["New ticket", "Raise an issue — routing and priority are computed automatically"],
+  people: ["People", "Employees, support staff, and administrators"],
+  notifications: ["Notifications", "Events pushed to the acting-as user"],
+};
+
+document.querySelectorAll(".nav-item").forEach(btn => {
+  btn.addEventListener("click", () => showView(btn.dataset.view));
+});
+
+function showView(name) {
+  document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === name));
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById("view-" + name).classList.add("active");
+  document.getElementById("view-title").textContent = VIEW_META[name][0];
+  document.getElementById("view-sub").textContent = VIEW_META[name][1];
+  if (name === "tickets") renderTicketTable();
+  if (name === "notifications") renderNotifications();
+  if (name === "people") renderUserTable();
+  if (name === "overview") renderOverview();
+}
+
+// ---------- acting-as ----------
+document.getElementById("actingAsSelect").addEventListener("change", (e) => {
+  ACTING_AS = USERS.find(u => String(u.id) === e.target.value) || null;
+  updateActingAsChip();
+  renderOverview();
+  if (document.getElementById("view-notifications").classList.contains("active")) renderNotifications();
+});
+
+function updateActingAsChip() {
+  document.getElementById("actingAsRole").textContent = ACTING_AS ? ACTING_AS.role : "—";
+}
+
+function populateActingAsSelect() {
+  const sel = document.getElementById("actingAsSelect");
+  const prev = sel.value;
+  sel.innerHTML = USERS.map(u => `<option value="${u.id}">${u.name} (#${u.id})</option>`).join("");
+  if (USERS.length) {
+    const keep = USERS.find(u => String(u.id) === prev);
+    ACTING_AS = keep || USERS[0];
+    sel.value = ACTING_AS.id;
+  }
+  updateActingAsChip();
+}
+
+// ---------- data loading ----------
+async function loadUsers() {
+  USERS = await api("/api/users");
+  populateActingAsSelect();
+}
+async function loadTickets() {
+  TICKETS = await api("/api/tickets");
+}
+
+async function refreshAll() {
+  await loadUsers();
+  await loadTickets();
+  renderOverview();
+  renderTicketTable();
+  renderUserTable();
+}
+
+// ---------- overview ----------
+function renderOverview() {
+  const counts = { OPEN: 0, ASSIGNED: 0, IN_PROGRESS: 0, RESOLVED: 0, CLOSED: 0 };
+  TICKETS.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
+
+  const tiles = [
+    { label: "Open", num: counts.OPEN, cls: "" },
+    { label: "Assigned", num: counts.ASSIGNED, cls: "" },
+    { label: "In progress", num: counts.IN_PROGRESS, cls: "accent" },
+    { label: "Resolved", num: counts.RESOLVED, cls: "" },
+    { label: "Closed", num: counts.CLOSED, cls: "" },
+  ];
+  document.getElementById("statTiles").innerHTML = tiles.map(t =>
+    `<div class="tile ${t.cls}"><div class="num">${t.num}</div><div class="label">${t.label}</div></div>`
+  ).join("");
+
+  const openTickets = TICKETS.filter(t => t.status !== "CLOSED").slice(0, 8);
+  const rows = openTickets.map(t => `
+    <tr onclick="openDrawer(${t.id})">
+      <td class="tid">#${t.id}</td>
+      <td>${escapeHtml(t.title)}</td>
+      <td>${t.category}</td>
+      <td>${priorityChip(t.priority)}</td>
+      <td>${statusChip(t.status)}</td>
+      <td>${levelLabel(t.currentSupportLevel)}</td>
+    </tr>`).join("");
+  document.getElementById("overviewTicketRows").innerHTML = rows;
+  document.getElementById("overviewEmpty").style.display = openTickets.length ? "none" : "block";
+
+  renderFeedInto("overviewFeed", 6);
+}
+
+async function renderFeedInto(elId, limit) {
+  const el = document.getElementById(elId);
+  if (!ACTING_AS) { el.innerHTML = `<div class="empty">Select a user first.</div>`; return; }
+  try {
+    const notifs = await api(`/api/notifications/user/${ACTING_AS.id}`);
+    const list = limit ? notifs.slice(0, limit) : notifs;
+    if (!list.length) { el.innerHTML = `<div class="empty">No notifications yet.</div>`; return; }
+    el.innerHTML = list.map(n => `
+      <div class="feed-item">
+        <div class="msg">${escapeHtml(n.message)}</div>
+        <div class="meta">#${n.ticketId} · ${escapeHtml(n.ticketTitle || "")} · ${fmtDate(n.createdAt)}</div>
+      </div>`).join("");
+  } catch (e) {
+    el.innerHTML = `<div class="empty">Could not load notifications.</div>`;
+  }
+}
+
+function renderNotifications() { renderFeedInto("notificationList", null); }
+
+// ---------- tickets table ----------
+function renderTicketTable() {
+  const statusFilter = document.getElementById("filterStatus").value;
+  const categoryFilter = document.getElementById("filterCategory").value;
+  const filtered = TICKETS.filter(t =>
+    (!statusFilter || t.status === statusFilter) &&
+    (!categoryFilter || t.category === categoryFilter)
+  );
+  const rows = filtered.map(t => `
+    <tr onclick="openDrawer(${t.id})">
+      <td class="tid">#${t.id}</td>
+      <td>${escapeHtml(t.title)}</td>
+      <td>${t.category}</td>
+      <td>${priorityChip(t.priority)}</td>
+      <td>${statusChip(t.status)}</td>
+      <td>${levelLabel(t.currentSupportLevel)}</td>
+      <td>${t.assignedToName ? escapeHtml(t.assignedToName) : "—"}</td>
+    </tr>`).join("");
+  document.getElementById("ticketRows").innerHTML = rows;
+  document.getElementById("ticketsEmpty").style.display = filtered.length ? "none" : "block";
+}
+document.getElementById("filterStatus").addEventListener("change", renderTicketTable);
+document.getElementById("filterCategory").addEventListener("change", renderTicketTable);
+document.getElementById("refreshTickets").addEventListener("click", async () => { await loadTickets(); renderTicketTable(); });
+
+// ---------- new ticket ----------
+document.getElementById("newTicketForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById("newTicketError");
+  errBox.classList.remove("show");
+  if (!ACTING_AS) { errBox.textContent = "Select an acting-as user in the top bar first."; errBox.classList.add("show"); return; }
+
+  const payload = {
+    title: document.getElementById("ntTitle").value,
+    description: document.getElementById("ntDescription").value,
+    category: document.getElementById("ntCategory").value,
+    createdByUserId: ACTING_AS.id,
+  };
+  try {
+    const ticket = await api("/api/tickets", { method: "POST", body: JSON.stringify(payload) });
+    const box = document.getElementById("newTicketResult");
+    box.classList.add("show");
+    box.innerHTML = `
+      <div class="row"><span>Ticket</span><span>#${ticket.id} — ${escapeHtml(ticket.title)}</span></div>
+      <div class="row"><span>Priority (Strategy)</span><span>${priorityChip(ticket.priority)}</span></div>
+      <div class="row"><span>Routed to (Factory)</span><span>${levelLabel(ticket.currentSupportLevel)}</span></div>
+      <div class="row"><span>Status</span><span>${statusChip(ticket.status)}</span></div>
+    `;
+    e.target.reset();
+    await loadTickets();
+    renderOverview();
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.classList.add("show");
+  }
+});
+
+// ---------- people ----------
+function renderUserTable() {
+  document.getElementById("userRows").innerHTML = USERS.map(u => `
+    <tr>
+      <td class="tid">#${u.id}</td>
+      <td>${escapeHtml(u.name)}</td>
+      <td>${escapeHtml(u.email)}</td>
+      <td>${u.role}</td>
+    </tr>`).join("");
+}
+
+document.getElementById("newUserForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById("newUserError");
+  errBox.classList.remove("show");
+  const payload = {
+    name: document.getElementById("uName").value,
+    email: document.getElementById("uEmail").value,
+    password: document.getElementById("uPassword").value,
+    role: document.getElementById("uRole").value,
+  };
+  try {
+    await api("/api/users/register", { method: "POST", body: JSON.stringify(payload) });
+    e.target.reset();
+    await loadUsers();
+    renderUserTable();
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.classList.add("show");
+  }
+});
+
+// ---------- ticket drawer ----------
+const overlay = document.getElementById("overlay");
+const drawer = document.getElementById("drawer");
+document.getElementById("drawerClose").addEventListener("click", closeDrawer);
+overlay.addEventListener("click", closeDrawer);
+
+function closeDrawer() {
+  overlay.classList.remove("show");
+  drawer.classList.remove("show");
+  CURRENT_TICKET_ID = null;
+}
+
+async function openDrawer(ticketId) {
+  CURRENT_TICKET_ID = ticketId;
+  overlay.classList.add("show");
+  drawer.classList.add("show");
+  document.getElementById("drawerError").classList.remove("show");
+  document.getElementById("drawerSuccess").classList.remove("show");
+  await loadDrawer();
+}
+window.openDrawer = openDrawer;
+
+async function loadDrawer() {
+  const t = await api(`/api/tickets/${CURRENT_TICKET_ID}`);
+  document.getElementById("drawerTitle").textContent = t.title;
+  document.getElementById("drawerSub").textContent = `#${t.id} · ${t.category}`;
+  document.getElementById("drawerDescription").textContent = t.description || "—";
+
+  document.getElementById("drawerDetails").innerHTML = `
+    <div class="k">Status</div><div>${statusChip(t.status)}</div>
+    <div class="k">Priority</div><div>${priorityChip(t.priority)}</div>
+    <div class="k">Support level</div><div>${levelLabel(t.currentSupportLevel)}</div>
+    <div class="k">Created by</div><div>${escapeHtml(t.createdByName || "—")}</div>
+    <div class="k">Assigned to</div><div>${escapeHtml(t.assignedToName || "Unassigned")}</div>
+    <div class="k">Created</div><div>${fmtDate(t.createdAt)}</div>
+    <div class="k">Updated</div><div>${fmtDate(t.updatedAt)}</div>
+  `;
+
+  renderDrawerActions(t);
+
+  const statusHistory = await api(`/api/tickets/${t.id}/status-history`);
+  document.getElementById("drawerStatusHistory").innerHTML = statusHistory.length
+    ? statusHistory.map(h => `
+        <div class="tl-item">
+          <div class="tl-time">${fmtDate(h.timestamp)}</div>
+          <div>${h.fromStatus.replace('_',' ')} → ${h.toStatus.replace('_',' ')}</div>
+        </div>`).join("")
+    : `<div class="empty">No transitions yet.</div>`;
+
+  const escHistory = await api(`/api/tickets/${t.id}/escalation-history`);
+  document.getElementById("drawerEscalationHistory").innerHTML = escHistory.length
+    ? escHistory.map(h => `
+        <div class="tl-item">
+          <div class="tl-time">${fmtDate(h.timestamp)}</div>
+          <div>${levelLabel(h.fromLevel)} → ${levelLabel(h.toLevel)}<br><span style="color:var(--text-dim)">${escapeHtml(h.reason)}</span></div>
+        </div>`).join("")
+    : `<div class="empty">Not escalated yet.</div>`;
+}
+
+function renderDrawerActions(t) {
+  const el = document.getElementById("drawerActions");
+  const supportStaff = USERS.filter(u => u.role === "SUPPORT_STAFF");
+  let html = "";
+
+  if (t.status === "OPEN") {
+    const options = supportStaff.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+    html += `
+      <select id="assignSelect" style="min-width:160px;">${options || "<option disabled>No support staff registered</option>"}</select>
+      <button class="btn" onclick="doAssign()" ${supportStaff.length ? "" : "disabled"}>Assign</button>`;
+  }
+  if (t.status === "ASSIGNED") {
+    html += `<button class="btn" onclick="doAction('start-progress','PUT')">Start progress</button>`;
+  }
+  if (t.status === "IN_PROGRESS") {
+    html += `<button class="btn" onclick="doAction('resolve','PUT')">Resolve</button>`;
+  }
+  if (t.status === "RESOLVED") {
+    html += `<button class="btn" onclick="doAction('close','PUT')">Close</button>`;
+  }
+  if (t.status === "CLOSED") {
+    html += `<span class="hint">This ticket is closed — no further transitions are possible.</span>`;
+  }
+  if (t.status !== "CLOSED") {
+    html += `<button class="btn secondary" onclick="doEscalate()">Escalate</button>`;
+  }
+  html += `<button class="btn secondary" onclick="tryIllegalClose()" title="Demonstrates the State pattern rejecting an invalid transition">Try illegal close</button>`;
+
+  el.innerHTML = html;
+}
+
+async function doAssign() {
+  const staffId = document.getElementById("assignSelect").value;
+  await runDrawerAction(() => api(`/api/tickets/${CURRENT_TICKET_ID}/assign`, {
+    method: "PUT", body: JSON.stringify({ staffUserId: Number(staffId) })
+  }), "Ticket assigned.");
+}
+window.doAssign = doAssign;
+
+async function doAction(path, method) {
+  await runDrawerAction(() => api(`/api/tickets/${CURRENT_TICKET_ID}/${path}`, { method }), "Updated.");
+}
+window.doAction = doAction;
+
+async function doEscalate() {
+  await runDrawerAction(() => api(`/api/tickets/${CURRENT_TICKET_ID}/escalate`, {
+    method: "POST", body: JSON.stringify({ reason: "Escalated manually from console" })
+  }), "Ticket escalated through the support chain.");
+}
+window.doEscalate = doEscalate;
+
+async function tryIllegalClose() {
+  const errBox = document.getElementById("drawerError");
+  const okBox = document.getElementById("drawerSuccess");
+  okBox.classList.remove("show");
+  try {
+    await api(`/api/tickets/${CURRENT_TICKET_ID}/close`, { method: "PUT" });
+    await loadDrawer();
+  } catch (err) {
+    errBox.textContent = "State pattern blocked this: " + err.message;
+    errBox.classList.add("show");
+  }
+}
+window.tryIllegalClose = tryIllegalClose;
+
+async function runDrawerAction(fn, successMsg) {
+  const errBox = document.getElementById("drawerError");
+  const okBox = document.getElementById("drawerSuccess");
+  errBox.classList.remove("show");
+  okBox.classList.remove("show");
+  try {
+    await fn();
+    okBox.textContent = successMsg;
+    okBox.classList.add("show");
+    await loadDrawer();
+    await loadTickets();
+    renderTicketTable();
+    renderOverview();
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.classList.add("show");
+  }
+}
+
+// ---------- utils ----------
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str).replace(/[&<>"']/g, m => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[m]));
+}
+
+// ---------- boot ----------
+refreshAll().catch(err => {
+  document.getElementById("statTiles").innerHTML =
+    `<div class="empty" style="grid-column:1/-1;">Could not reach the API. Is the Spring Boot app running on this same port? (${err.message})</div>`;
+});
+</script>
+</body>
+</html>
